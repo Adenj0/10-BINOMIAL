@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binomial Distribution Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+        }
+        button {
+            margin-top: 15px;
+            padding: 10px;
+            width: 100%;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #ccc;
+        }
+        canvas {
+            margin-top: 20px;
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Binomial Distribution Calculator</h1>
+        <form id="binomialForm">
+            <label for="trials">Number of Trials (n):</label>
+            <input type="number" id="trials" min="0" required>
+
+            <label for="probability">Probability of Success (p):</label>
+            <input type="number" id="probability" step="0.01" min="0" max="1" required>
+
+            <label for="successes">Number of Successes (k):</label>
+            <input type="number" id="successes" min="0" required>
+
+            <button type="button" onclick="calculateBinomial()">Calculate</button>
+            <button type="button" onclick="calculateCumulative()">Calculate Cumulative</button>
+            <button type="button" onclick="downloadResults()">Download Results</button>
+        </form>
+        <div class="result" id="result"></div>
+        <canvas id="distributionChart"></canvas>
+    </div>
+
+    <script>
+        function factorial(n) {
+            if (n === 0 || n === 1) return 1;
+            let result = 1;
+            for (let i = 2; i <= n; i++) {
+                result *= i;
+            }
+            return result;
+        }
+
+        function binomialCoefficient(n, k) {
+            return factorial(n) / (factorial(k) * factorial(n - k));
+        }
+
+        function calculateBinomial() {
+            const n = parseInt(document.getElementById('trials').value);
+            const p = parseFloat(document.getElementById('probability').value);
+            const k = parseInt(document.getElementById('successes').value);
+
+            if (isNaN(n) || isNaN(p) || isNaN(k) || n < 0 || p < 0 || p > 1 || k < 0 || k > n) {
+                document.getElementById('result').innerText = 'Please enter valid inputs.';
+                return;
+            }
+
+            const binomialProb = binomialCoefficient(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+
+            document.getElementById('result').innerHTML = 
+                `<strong>Binomial Probability:</strong> ${binomialProb.toFixed(6)}`;
+
+            drawChart(n, p);
+        }
+
+        function calculateCumulative() {
+            const n = parseInt(document.getElementById('trials').value);
+            const p = parseFloat(document.getElementById('probability').value);
+            const k = parseInt(document.getElementById('successes').value);
+
+            if (isNaN(n) || isNaN(p) || isNaN(k) || n < 0 || p < 0 || p > 1 || k < 0 || k > n) {
+                document.getElementById('result').innerText = 'Please enter valid inputs.';
+                return;
+            }
+
+            let cumulativeProb = 0;
+            for (let i = 0; i <= k; i++) {
+                cumulativeProb += binomialCoefficient(n, i) * Math.pow(p, i) * Math.pow(1 - p, n - i);
+            }
+
+            document.getElementById('result').innerHTML = 
+                `<strong>Cumulative Probability (P(X ≤ ${k})):</strong> ${cumulativeProb.toFixed(6)}`;
+
+            drawChart(n, p);
+        }
+
+        function drawChart(n, p) {
+            const canvas = document.getElementById('distributionChart');
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const probabilities = [];
+            for (let k = 0; k <= n; k++) {
+                probabilities.push(binomialCoefficient(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k));
+            }
+
+            const maxProb = Math.max(...probabilities);
+
+            ctx.fillStyle = '#007BFF';
+            probabilities.forEach((prob, k) => {
+                const barHeight = (prob / maxProb) * canvas.height;
+                ctx.fillRect(k * (canvas.width / (n + 1)), canvas.height - barHeight, canvas.width / (n + 1) - 2, barHeight);
+            });
+        }
+
+        function downloadResults() {
+            const n = parseInt(document.getElementById('trials').value);
+            const p = parseFloat(document.getElementById('probability').value);
+
+            if (isNaN(n) || isNaN(p) || n < 0 || p < 0 || p > 1) {
+                document.getElementById('result').innerText = 'Please enter valid inputs.';
+                return;
+            }
+
+            let csvContent = "k,Probability\n";
+            for (let k = 0; k <= n; k++) {
+                const prob = binomialCoefficient(n, k) * Math.pow(p, k) * Math.pow(1 - p, n - k);
+                csvContent += `${k},${prob.toFixed(6)}\n`;
+            }
+
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'binomial_distribution.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
